@@ -1,36 +1,59 @@
 // 9x9 sudoko puzzle.  Solve one missing row.  No error detection.
 //
 // TODO: 
-// - use ndarray crate.  
-// - Added a row based missing<bool>[][].  
-// - answer is intersection of row and column missing.  Really that easy?
-type Grid = Vec<Vec<u8>>;
-type HoodMissing = [bool;9];
+// - naw: use ndarray crate.  
+// - done Added a row+block based missing<bool>[][].  
+// - answer is intersection of block, row and column missing.  Really that easy?
+pub type Grid = Vec<Vec<u8>>;
+pub type Hood = [bool;9];
+pub type HoodDb = [Hood;9];
 
+pub trait HoodDbOps {
+    fn new() -> HoodDb;
+}
+impl HoodDbOps for HoodDb {
+    fn new() -> HoodDb {
+        [Hood::new();9]
+    }
+}
 // This is an extension trait which allows extending other peoples structs and stuff.
-pub trait MissingConstructor {
-     fn new() -> HoodMissing;
+pub trait HoodOps {
+     fn new() -> Hood;
      fn found(&mut self, digit:u8);
+     fn is_missing(&self, digit:u8)->bool;
  }
-impl MissingConstructor for HoodMissing {
-    fn new() -> HoodMissing{ [true;9] }
+impl HoodOps for Hood {
+    fn new() -> Hood{ [true;9] }
     fn found(&mut self, digit:u8) {
         self[(digit-1) as usize] = false;
+    }
+    fn is_missing(&self, digit:u8) -> bool {
+        self[digit as usize -1]
     }
 }
 
 fn main() {
     let raw_grid=vec![
-        "123456789",
-        "456789123",
-        "789123456",
-        "231564897",
-        "564897231",
-        "897231564",
-        "348672915",
-        "?????????",/*"672915348",*/
-        "915348672",
-        //old: "123456789","912345678","891234567","789123456","678912345","567891234","?????????",/*"456789123",*/"345678912","234567891",
+        "1?3456789",
+        "4?6789123",
+        "7?9123456",
+        "2?1564897",
+        "5?4897231",
+        "8?7231564",
+        "3?8672915",
+        "6?2915348",
+        "9?5348672",
+        
+        // "123456789",
+        // "456789123",
+        // "789123456",
+        // "231564897",
+        // "564897231",
+        // "897231564",
+        // "348672915",
+        // "?????????",/*"672915348",*/
+        // "915348672",
+        // //old: "123456789","912345678","891234567","789123456","678912345","567891234","?????????",/*"456789123",*/"345678912","234567891",
         ];
     let  grid:Grid = raw_grid.iter()
         .map(|s|  s.bytes()
@@ -45,9 +68,9 @@ fn main() {
     // so for example the cell at the bottom right of the puzzle is row=8,col=8,blk=8
     // Center cell is row=4,col=4,blk=4
 
-    let mut row_mis:Vec<HoodMissing> = vec![HoodMissing::new();9];  // 9 rows in the game
-    let mut col_mis:Vec<HoodMissing> = vec![HoodMissing::new();9];  // 9 columns in the game
-    let mut blk_mis:Vec<HoodMissing> = vec![HoodMissing::new();9];  // 9 blocks in the game
+    let mut row_mis = HoodDb::new();  // 9 rows in the game
+    let mut col_mis = HoodDb::new();  // 9 columns in the game
+    let mut blk_mis = HoodDb::new();  // 9 blocks in the game
     const UNKNOWN:u8 = 0;
 
     for (i_row,row) in grid.iter().enumerate() {
@@ -59,11 +82,13 @@ fn main() {
             }
         }
     }
-    println!("{}" , 
-        col_mis.iter().map(|col| col.iter().take_while(|&&b| !b).count()+1).map(|d| d.to_string()).collect::<String>()
+    println!("col{} row{} block{}" , 
+        col_mis.iter().map(|i| (i.iter().take_while(|&&b| !b).count()+1)%10).map(|d| d.to_string()).collect::<String>(),
+        row_mis.iter().map(|i| (i.iter().take_while(|&&b| !b).count()+1)%10).map(|d| d.to_string()).collect::<String>(),
+        blk_mis.iter().map(|i| (i.iter().take_while(|&&b| !b).count()+1)%10).map(|d| d.to_string()).collect::<String>(),
         
     );
-    println!("col_mis={:?}" , col_mis)
+    //println!("col_mis={:?}" , col_mis)
 }
 
 // block index from row column index
@@ -89,6 +114,23 @@ fn print_grid(grid : &Grid) {
         }
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use crate::HoodOps;
+    use crate::HoodDb; 
+    use crate::HoodDbOps;
+    #[test]
+    fn is_missing() {
+        
+        let mut row_mis = HoodDb::new();
+        row_mis[2].found(1);
+        assert!( row_mis[2].is_missing(2));
+        assert!(! row_mis[2].is_missing(1));
+    }
+}
+
 // input:
 // 231
 // ??? /*312*/
