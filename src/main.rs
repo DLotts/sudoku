@@ -1,3 +1,5 @@
+use  std::collections::HashSet;
+
 // 9x9 sudoko puzzle.  Solve one missing row.  No error detection.
 //
 // TODO: 
@@ -21,6 +23,8 @@ pub trait HoodOps {
      fn new() -> Hood;
      fn found(&mut self, digit:u8);
      fn is_missing(&self, digit:u8)->bool;
+     fn union(self, rhs: Self) -> Self;
+     fn into_set(&self) -> HashSet<u8>;
  }
 impl HoodOps for Hood {
     fn new() -> Hood{ [true;9] }
@@ -30,6 +34,18 @@ impl HoodOps for Hood {
     fn is_missing(&self, digit:u8) -> bool {
         self[digit as usize -1]
     }
+    // set Union is boolean AND on neiborhoods.  
+    // If one is missing from each neighbor of a cell, then it could go there.
+    fn union(self, rhs: Self) -> Self {
+        self.iter().zip(rhs).map(|(a,b)| a & b).collect::<Vec<bool>>().try_into().unwrap_or([false;9])
+        //[true, false, false, false, false, false, false, false, false]
+    }
+    fn into_set(&self) -> HashSet<u8> {
+        let mut out = HashSet::<u8>::new();
+        self.iter().enumerate().for_each(|(i,&b)| if b { out.insert(i as u8 + 1); });
+        out
+    }
+    //fn onlyOne() -> boolean
 }
 
 fn main() {
@@ -38,9 +54,9 @@ fn main() {
         "4?6789123",
         "7?9123456",
         "2?1564897",
-        "5?4897231",
+        "5?489??31",//"5?4897231",
         "8?7231564",
-        "3?8672915",
+        "?????????",//"3?8672915",
         "6?2915348",
         "9?5348672",
         
@@ -82,13 +98,30 @@ fn main() {
             }
         }
     }
-    println!("col{} row{} block{}" , 
-        col_mis.iter().map(|i| (i.iter().take_while(|&&b| !b).count()+1)%10).map(|d| d.to_string()).collect::<String>(),
-        row_mis.iter().map(|i| (i.iter().take_while(|&&b| !b).count()+1)%10).map(|d| d.to_string()).collect::<String>(),
-        blk_mis.iter().map(|i| (i.iter().take_while(|&&b| !b).count()+1)%10).map(|d| d.to_string()).collect::<String>(),
+    println!("col={} row={} block={}" , 
+        col_mis.iter().map(|i| (i.iter().enumerate().filter(|(_,&b)| b)).map(|(i,_)| (i+1).to_string()).collect::<Vec<String>>().join(",")).map(|s| format!("({s})")).collect::<String>(),
+        row_mis.iter().map(|i| (i.iter().enumerate().filter(|(_,&b)| b)).map(|(i,_)| (i+1).to_string()).collect::<Vec<String>>().join(",")).map(|s| format!("({s})")).collect::<String>(),
+        blk_mis.iter().map(|i| (i.iter().enumerate().filter(|(_,&b)| b)).map(|(i,_)| (i+1).to_string()).collect::<Vec<String>>().join(",")).map(|s| format!("({s})")).collect::<String>(),
         
     );
     //println!("col_mis={:?}" , col_mis)
+    // print the grid with sets of missing digits
+    for (irow,row) in grid.into_iter().enumerate() {
+        for (i,digit) in row.into_iter().enumerate() {
+            let border = if i>0&&(i)%3==0 { '|' } else {' '};
+            if digit!=0 {
+                print!("{border}{digit}");
+            } else {
+                let missing = row_mis[irow].union(col_mis[i]).union(blk_mis[block_from_rc(irow,i)]).into_set();
+                print!("{border}{:?}",missing);
+            }
+        }
+        println!("");
+        if irow == 2 || irow==5 {
+            println!(" -----------------");
+        }
+    }
+
 }
 
 // block index from row column index
@@ -118,18 +151,38 @@ fn print_grid(grid : &Grid) {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
+
     use crate::HoodOps;
+    use crate::Hood;
     use crate::HoodDb; 
     use crate::HoodDbOps;
     #[test]
     fn is_missing() {
-        
         let mut row_mis = HoodDb::new();
         row_mis[2].found(1);
         assert!( row_mis[2].is_missing(2));
         assert!(! row_mis[2].is_missing(1));
     }
+    #[test]
+    fn union3() {
+        let mut a = Hood::new();
+        let mut b = Hood::new();
+        let mut c = Hood::new();
+        a.found(1);                  a.found(4);a.found(5);a.found(6);a.found(7);
+        b.found(1);b.found(3);                  b.found(5);b.found(6);b.found(7);
+        c.found(1);c.found(3);c.found(4);                  c.found(6);c.found(7);
+        assert_eq!(a.union(b).union(c), [false, true, false, false, false, false, false, true, true], "true means missing");
+    }
+    #[test]
+    fn bool9_to_set() {
+        let mut a = Hood::new();
+        a.found(1);a.found(4);a.found(5);a.found(6);a.found(7);
+        assert_eq!(a.into_set(),  HashSet::from([2,3,8,9]) , "presense in the set means not found");
+    }
 }
+
+
 
 // input:
 // 231
