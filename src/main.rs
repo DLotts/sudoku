@@ -23,7 +23,8 @@ pub trait HoodOps {
      fn new() -> Hood;
      fn found(&mut self, digit:u8);
      fn is_missing(&self, digit:u8)->bool;
-     fn union(self, rhs: Self) -> Self;
+     fn inters(self, rhs: Self) -> Self;
+     fn inters3(self, s2: Self, s3: Self) -> Self ;
      fn into_set(&self) -> HashSet<u8>;
  }
 impl HoodOps for Hood {
@@ -34,10 +35,17 @@ impl HoodOps for Hood {
     fn is_missing(&self, digit:u8) -> bool {
         self[digit as usize -1]
     }
-    // set Union is boolean AND on neiborhoods.  
+    // set intersection is boolean AND on neiborhoods.  
     // If one is missing from each neighbor of a cell, then it could go there.
-    fn union(self, rhs: Self) -> Self {
-        self.iter().zip(rhs).map(|(a,b)| a & b).collect::<Vec<bool>>().try_into().unwrap_or([false;9])
+    fn inters(self, rhs: Self) -> Self {
+        self.iter().zip(rhs).map(|(&a,b)| a &&b).collect::<Vec<bool>>().try_into().unwrap_or([false;9])
+        //[true, false, false, false, false, false, false, false, false]
+    }
+    // TODO try disjunct set using xor3 = (a ^ b ^ c) && !(a && b && c)
+        // so if intersection yields one possibility, or xor3 gives one possibility!
+        // hashset has method symmetric_difference
+    fn inters3(self, s2: Self, s3: Self) -> Self {
+        self.iter().zip(s2).zip(s3).map(|((&a,b),c)| a && b && c).collect::<Vec<bool>>().try_into().unwrap_or([false;9])
         //[true, false, false, false, false, false, false, false, false]
     }
     fn into_set(&self) -> HashSet<u8> {
@@ -50,16 +58,36 @@ impl HoodOps for Hood {
 
 fn main() {
     let raw_grid=vec![
-        "--74916-5",  // from https://www.kennyyipcoding.com/Sudoku/sudoku.js
-        "2---6-3-9",
-        "-----7-1-",
-        "-586----4",
-        "--3----9-",
-        "--62--187",
-        "9-4-7---2",
-        "67-83----",
-        "81--45---"
-    
+        // "--74916-5",  // from https://www.kennyyipcoding.com/Sudoku/sudoku.js
+        // "2---6-3-9",
+        // "-----7-1-",
+        // "-586----4",
+        // "--3----9-",
+        // "--62--187",
+        // "9-4-7---2",
+        // "67-83----",
+        // "81--45---"
+
+        //"8--------", // from https://abcnews.go.com/blogs/headlines/2012/06/can-you-solve-the-hardest-ever-sudoku
+        //"--36-----",
+        //"-7--9-2--",
+        //"-5---7---",
+        //"----457--",
+        //"---1---3-",
+        //"--1----68",
+        //"--85---1-",
+        //"-9----4--",
+
+        "---6----1",  //https://sudoku.com/medium/
+        "9-1--4---",
+        "-45---39-",
+        "567-189-4",
+        "-3--26---",
+        "2-9-47863",
+        "-5---9---",
+        "7--4--61-",
+        "---7-32-9",
+        
     // var solution = [
     //     "387491625",
     //     "241568379",
@@ -93,11 +121,13 @@ fn main() {
         // "?????????",/*"672915348",*/
         // "915348672",
         // //old: "123456789","912345678","891234567","789123456","678912345","567891234","?????????",/*"456789123",*/"345678912","234567891",
-        ];
-    let  grid:Grid = raw_grid.iter()
+    ];
+    
+    // copy the puzzle into an 2d array, using 0 as the unknown digit.
+    const UNKNOWN:u8 = 0;
+    let mut grid:Grid = raw_grid.iter()
         .map(|s|  s.bytes()
-            .map(|b| if b==b'?'|| b<b'1' || b>b'9' {0}else{b-b'0'}).collect()).collect();  
-    print_grid(&grid);
+            .map(|b| if b==b'?'|| b<b'1' || b>b'9' {UNKNOWN} else {b - b'0'}).collect()).collect();  
 
     // Track the missing numbers for each hood in the game.  Hoods are rows, columns and blocks.
     // Rows are 0..8 top to bottom. Columns are 0..8 left to right. Blocks are:
@@ -110,7 +140,6 @@ fn main() {
     let mut row_mis = HoodDb::new();  // 9 rows in the game
     let mut col_mis = HoodDb::new();  // 9 columns in the game
     let mut blk_mis = HoodDb::new();  // 9 blocks in the game
-    const UNKNOWN:u8 = 0;
 
     for (i_row,row) in grid.iter().enumerate() {
         for (i_col, &digit) in row.iter().enumerate() {
@@ -121,56 +150,89 @@ fn main() {
             }
         }
     }
-    println!("col={} row={} block={}" , 
-        col_mis.iter().map(|i| (i.iter().enumerate().filter(|(_,&b)| b)).map(|(i,_)| (i+1).to_string()).collect::<Vec<String>>().join(",")).map(|s| format!("({s})")).collect::<String>(),
-        row_mis.iter().map(|i| (i.iter().enumerate().filter(|(_,&b)| b)).map(|(i,_)| (i+1).to_string()).collect::<Vec<String>>().join(",")).map(|s| format!("({s})")).collect::<String>(),
-        blk_mis.iter().map(|i| (i.iter().enumerate().filter(|(_,&b)| b)).map(|(i,_)| (i+1).to_string()).collect::<Vec<String>>().join(",")).map(|s| format!("({s})")).collect::<String>(),
-        
-    );
+
+    // print the before puzzle.
+    print_notes_grid(&grid, false, row_mis, col_mis, blk_mis);
+
+    // println!("col={} row={} block={}" , 
+    //     col_mis.iter().map(|i| (i.iter().enumerate().filter(|(_,&b)| b)).map(|(i,_)| (i+1).to_string()).collect::<Vec<String>>().join(",")).map(|s| format!("({s})")).collect::<String>(),
+    //     row_mis.iter().map(|i| (i.iter().enumerate().filter(|(_,&b)| b)).map(|(i,_)| (i+1).to_string()).collect::<Vec<String>>().join(",")).map(|s| format!("({s})")).collect::<String>(),
+    //     blk_mis.iter().map(|i| (i.iter().enumerate().filter(|(_,&b)| b)).map(|(i,_)| (i+1).to_string()).collect::<Vec<String>>().join(",")).map(|s| format!("({s})")).collect::<String>(),
+    // );
     //println!("col_mis={:?}" , col_mis)
-    // print the grid with sets of missing digits
-    for (irow,row) in grid.into_iter().enumerate() {
-        for (i,digit) in row.into_iter().enumerate() {
-            let border = if i>0&&(i)%3==0 { '|' } else {' '};
-            if digit!=0 {
-                print!("{border}{digit}");
-            } else {
-                let missing = row_mis[irow].union(col_mis[i]).union(blk_mis[block_from_rc(irow,i)]).into_set();
-                print!("{border}{:?}",missing);
+ 
+    // solve the puzzle!
+    // next grid allows us to change the data while iterating the original.
+    let mut next_grid;
+    let mut still_changing = true;
+    let mut loop_count = 0;
+    while still_changing  {
+        print_notes_grid(&grid, true, row_mis, col_mis, blk_mis);
+        still_changing = false;
+        next_grid = grid.clone();
+        for (i_row,row) in grid.iter().enumerate() {
+            for (i_col,&digit) in row.into_iter().enumerate() {
+                if digit==0 {
+                    //let missing = row_mis[i_row].inters(col_mis[i_col]).inters(blk_mis[block_from_rc(i_row,i_col)]).into_set();
+                    let missing = row_mis[i_row].inters3(col_mis[i_col],blk_mis[block_from_rc(i_row,i_col)]).into_set();
+                    if missing.len() == 0  {
+                        println!("Discovered a cell with no possible solutions after {} iterations.", loop_count);
+                    }
+                    if missing.len()==1 {
+                        // Only one possible solution, put into the grid and update the missing hoods arrays.
+                        let only_digit = *missing.iter().next().unwrap();
+                        next_grid[i_row][i_col] = only_digit;
+                        col_mis[i_col].found(only_digit);
+                        row_mis[i_row].found(only_digit);
+                        blk_mis[block_from_rc(i_row,i_col)].found(only_digit);
+                        still_changing = true;
+                    }
+                }
             }
         }
-        println!("");
-        if irow == 2 || irow==5 {
-            println!(" -----------------");
+        loop_count+=1;
+        grid = next_grid;
+        if loop_count > 100 {
+            println!("After {} iterations, no solutions.  Perhaps it has no or multiple solutions?", loop_count);
+            break;
         }
     }
 
+    // print the solution!
+    println!("Used {} iterations.", loop_count);
+    print_notes_grid(&grid, false, row_mis, col_mis, blk_mis);
+    
 }
 
-// block index from row column index
+// Determine the block (3x3) index from row,column index
 fn block_from_rc(i_row:usize,i_col:usize) -> usize {
     i_col / 3 + (i_row/3)*3
 }
 
-// Print the puzzle
-fn print_grid(grid : &Grid) {
-    //grid.into_iter().for_each(|v| {v.into_iter().for_each(|d|print!("{d}"));println!("");});
-    for (irow,row) in grid.into_iter().enumerate() {
-        for (i,&digit) in row.into_iter().enumerate() {
-            let border = if i>0&&(i)%3==0 { '|' } else {' '};
+fn print_notes_grid(grid: &Vec<Vec<u8>>, show_notes:bool, row_mis: HoodDb, col_mis: HoodDb, blk_mis: HoodDb) {
+    // print the grid with sets of missing digits
+    println!("");
+    for (i_row,row) in grid.iter().enumerate() {
+        for (i_col,&digit) in row.into_iter().enumerate() {
+            print!("{}", if i_col>0&&(i_col)%3==0 { '|' } else {' '});
             if digit!=0 {
-                print!("{border}{digit}");
+                print!(" {digit}");
             } else {
-                print!("{border} ");
+                if show_notes {
+                    let missing = row_mis[i_row].inters3(col_mis[i_col], blk_mis[block_from_rc(i_row,i_col)]).into_set();
+                    print!("{:?}",missing);
+                } else {
+                    print!("  ");
+                }
+
             }
         }
         println!("");
-        if irow == 2 || irow==5 {
-            println!(" -----------------");
+        if i_row == 2 || i_row==5 {
+            println!(" --------------------------");
         }
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -188,14 +250,28 @@ mod tests {
         assert!(! row_mis[2].is_missing(1));
     }
     #[test]
-    fn union3() {
+    fn intersection() {
         let mut a = Hood::new();
         let mut b = Hood::new();
         let mut c = Hood::new();
+        assert_eq!(a.inters(b).inters(c), [true, true, true,true, true, true,true, true, true], "true means missing");
+        c.found(1);
+        assert_eq!(a.inters(b).inters(c), [false, true, true,true, true, true,true, true, true], "true means missing");
+        a.found(4);
+        assert_eq!(a.inters(b).inters(c), [false, true, true,false, true, true,true, true, true], "true means missing");
+
         a.found(1);                  a.found(4);a.found(5);a.found(6);a.found(7);
         b.found(1);b.found(3);                  b.found(5);b.found(6);b.found(7);
         c.found(1);c.found(3);c.found(4);                  c.found(6);c.found(7);
-        assert_eq!(a.union(b).union(c), [false, true, false, false, false, false, false, true, true], "true means missing");
+
+        assert_eq!(a.inters(b).inters(c), [false, true, false, false, false, false, false, true, true], "true means missing");
+        c.found(2);
+        assert_eq!(a.inters(b).inters(c), [false, false, false, false, false, false, false, true, true], "true means missing");
+        c.found(8);
+        assert_eq!(a.inters(b).inters(c), [false, false, false, false, false, false, false, false, true], "true means missing");
+        c.found(9);
+        assert_eq!(a.inters(b).inters(c), [false, false, false, false, false, false, false, false, false], "true means missing");
+
     }
     #[test]
     fn bool9_to_set() {
@@ -204,16 +280,3 @@ mod tests {
         assert_eq!(a.into_set(),  HashSet::from([2,3,8,9]) , "presense in the set means not found");
     }
 }
-
-
-
-// input:
-// 231
-// ??? /*312*/
-// 123
-
-// Missing 2x2
-// 1f.f  
-// 2ff.
-// 3.ff
-//  Read the true dots from left to right -> 312
