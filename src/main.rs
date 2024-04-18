@@ -92,15 +92,15 @@ fn main() {
         //"--85---1-",
         //"-9----4--",
 
-        "---6----1",  //https://sudoku.com/medium/
-        "9-1--4---",
-        "-45---39-",
-        "567-189-4",
-        "-3--26---",
-        "2-9-47863",
-        "-5---9---",
-        "7--4--61-",
-        "---7-32-9",
+        // "---6----1",  //https://sudoku.com/medium/
+        // "9-1--4---",
+        // "-45---39-",
+        // "567-189-4",
+        // "-3--26---",
+        // "2-9-47863",
+        // "-5---9---",
+        // "7--4--61-",
+        // "---7-32-9",
         
     // var solution = [
     //     "387491625",
@@ -134,6 +134,17 @@ fn main() {
         // "348672915",
         // "?????????",/*"672915348",*/
         // "915348672",
+
+        "?23456?89",
+        "456?89123",
+        "?89123456",
+        "231564897",
+        "564897231",
+        "897231564",
+        "348672915",
+        "672915348",
+        "915348672",
+
         // //old: "123456789","912345678","891234567","789123456","678912345","567891234","?????????",/*"456789123",*/"345678912","234567891",
     ];
     
@@ -155,6 +166,7 @@ fn main() {
     let mut col_mis = HoodMisSet::new();  // 9 columns in the game
     let mut blk_mis = HoodMisSet::new();  // 9 blocks in the game
 
+    // preset all the missing digits in the hoods
     for (i_row,row) in grid.iter().enumerate() {
         for (i_col, &digit) in row.iter().enumerate() {
             if digit!=UNKNOWN {
@@ -168,15 +180,8 @@ fn main() {
     // print the before puzzle.
     print_notes_grid(&grid, false, row_mis, col_mis, blk_mis);
 
-    // println!("col={} row={} block={}" , 
-    //     col_mis.iter().map(|i| (i.iter().enumerate().filter(|(_,&b)| b)).map(|(i,_)| (i+1).to_string()).collect::<Vec<String>>().join(",")).map(|s| format!("({s})")).collect::<String>(),
-    //     row_mis.iter().map(|i| (i.iter().enumerate().filter(|(_,&b)| b)).map(|(i,_)| (i+1).to_string()).collect::<Vec<String>>().join(",")).map(|s| format!("({s})")).collect::<String>(),
-    //     blk_mis.iter().map(|i| (i.iter().enumerate().filter(|(_,&b)| b)).map(|(i,_)| (i+1).to_string()).collect::<Vec<String>>().join(",")).map(|s| format!("({s})")).collect::<String>(),
-    // );
-    //println!("col_mis={:?}" , col_mis)
- 
     // solve the puzzle!
-    // keep missing sets for each grid cell.
+    // keep missing sets for each grid cell.  Needed for elimination inference, when one-possible inference is exhausted.
     let mut grid_mis = [[MisSet::new();9];9];
     // next grid allows us to change the data while iterating the original.
     let mut next_grid;
