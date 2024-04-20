@@ -1,5 +1,9 @@
 use  std::collections::HashSet;
 
+pub const UNKNOWN:u8 = 0;
+
+mod read;
+
 // 9x9 sudoko puzzle.  Solve one missing row.  No error detection.
 //
 // TODO: 
@@ -71,88 +75,12 @@ impl MisSetOps for MisSet {
 }
 
 fn main() {
-    let raw_grid=vec![
-        // "--74916-5",  // from https://www.kennyyipcoding.com/Sudoku/sudoku.js
-        // "2---6-3-9",
-        // "-----7-1-",
-        // "-586----4",
-        // "--3----9-",
-        // "--62--187",
-        // "9-4-7---2",
-        // "67-83----",
-        // "81--45---"
-
-        //"8--------", // from https://abcnews.go.com/blogs/headlines/2012/06/can-you-solve-the-hardest-ever-sudoku
-        //"--36-----",
-        //"-7--9-2--",
-        //"-5---7---",
-        //"----457--",
-        //"---1---3-",
-        //"--1----68",
-        //"--85---1-",
-        //"-9----4--",
-
-        // "---6----1",  //https://sudoku.com/medium/
-        // "9-1--4---",
-        // "-45---39-",
-        // "567-189-4",
-        // "-3--26---",
-        // "2-9-47863",
-        // "-5---9---",
-        // "7--4--61-",
-        // "---7-32-9",
-        
-    // var solution = [
-    //     "387491625",
-    //     "241568379",
-    //     "569327418",
-    //     "758619234",
-    //     "123784596",
-    //     "496253187",
-    //     "934176852",
-    //     "675832941",
-    //     "812945763"
-    // ]
-    
-
-        // "1?3456789",
-        // "4?6789123",
-        // "7?9123456",
-        // "2?1564897",
-        // "5?489??31",//"5?4897231",
-        // "8?7231564",
-        // "?????????",//"3?8672915",
-        // "6?2915348",
-        // "9?5348672",
-        
-        // "123456789",
-        // "456789123",
-        // "789123456",
-        // "231564897",
-        // "564897231",
-        // "897231564",
-        // "348672915",
-        // "?????????",/*"672915348",*/
-        // "915348672",
-
-        "?23456?89",
-        "456?89123",
-        "?89123456",
-        "231564897",
-        "564897231",
-        "897231564",
-        "348672915",
-        "672915348",
-        "915348672",
-
-        // //old: "123456789","912345678","891234567","789123456","678912345","567891234","?????????",/*"456789123",*/"345678912","234567891",
-    ];
-    
     // copy the puzzle into an 2d array, using 0 as the unknown digit.
-    const UNKNOWN:u8 = 0;
-    let mut grid:Grid = raw_grid.iter()
-        .map(|s|  s.bytes()
-            .map(|b| if b==b'?'|| b<b'1' || b>b'9' {UNKNOWN} else {b - b'0'}).collect()).collect();  
+    let mut grid:Grid =     crate::read::read().expect("Bad input data.");
+   
+    // raw_grid.iter()
+    //     .map(|s|  s.bytes()
+    //         .map(|b| if b==b'?'|| b<b'1' || b>b'9' {UNKNOWN} else {b - b'0'}).collect()).collect();  
 
     // Track the missing numbers for each hood in the game.  Hoods are rows, columns and blocks.
     // Rows are 0..8 top to bottom. Columns are 0..8 left to right. Blocks are:
