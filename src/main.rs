@@ -113,12 +113,12 @@ fn main() {
     let mut grid_mis = [[MisSet::new();9];9];
     // next grid allows us to change the data while iterating the original.
     let mut next_grid;
-    let mut still_changing ;
+    let mut loop_change_count ;
     let mut unknown_cell_count = 1;
     let mut loop_count = 0;
     while unknown_cell_count > 0  {
         print_notes_grid(&grid, true, row_mis, col_mis, blk_mis);
-        still_changing = false;
+        loop_change_count = 0;
         unknown_cell_count = 0;
         next_grid = grid.clone();
         for (i_row,row) in grid.iter().enumerate() {
@@ -139,7 +139,7 @@ fn main() {
                         row_mis[i_row].found(only_digit);
                         blk_mis[block_from_rc(i_row,i_col)].found(only_digit);
                         grid_mis[i_row][i_col]=MisSet::new_all_found();
-                        still_changing = true;
+                        loop_change_count += 1 ;
                     } else {
                         grid_mis[i_row][i_col]=missing_mis_set;
                     }
@@ -149,11 +149,13 @@ fn main() {
         loop_count+=1;
         grid = next_grid;
         if loop_count > 100 {
-            println!("After {} iterations, no solutions.  Perhaps it has no or multiple solutions?", loop_count);
+            println!("After {} iterations, no solutions.  Perhaps there is a bug?", loop_count);
             break;
         }
-        // Second inference type, elimination per neighboring
-        if unknown_cell_count > 0 && ! still_changing {
+        println!("On {} iteration, still have {} empty cells; Found {} new digits using only-one-missing inferencing.", loop_count, unknown_cell_count, loop_change_count);
+
+        // Second inference type, elimination per neighborhood
+        if unknown_cell_count > 0 && loop_change_count==0 {
             unknown_cell_count = 0;
             for (i_row,row) in grid_mis.iter().enumerate() {
                 for (i_col,existing_mis_set) in row.into_iter().enumerate() {
@@ -162,7 +164,7 @@ fn main() {
                         let mut mis_set = existing_mis_set.clone();
                         // take all the same missing digits along the ROW
                         for (take_col, &take_mis_set) in  row.iter().enumerate() {
-                            if take_col != i_col { // skip yourself
+                            if take_col != i_col && grid[i_row][take_col]==0  { // skip yourself
                                 mis_set.remove(take_mis_set);
                             }
                         }
@@ -170,7 +172,7 @@ fn main() {
                             // take all the same missing digits along the COLUMN
                             mis_set = existing_mis_set.clone();
                             for take_row  in  0..=8 {
-                                if take_row != i_row { // skip yourself
+                                if take_row != i_row && grid[take_row][i_col]==0{ // skip yourself
                                     mis_set.remove(grid_mis[take_row][i_col]);
                                 }
                             }
@@ -196,13 +198,16 @@ fn main() {
                             col_mis[i_col].found(only_digit);
                             row_mis[i_row].found(only_digit);
                             blk_mis[block_from_rc(i_row,i_col)].found(only_digit);
-                            still_changing = true;
+                            loop_change_count += 1;
                         }
                     }
                 }
             }
+            if loop_change_count > 0 {
+                println!("After {} iterations, {} empty cells and elimination inference found {}", loop_count, unknown_cell_count, loop_change_count);
+             }
          }
-         if  unknown_cell_count>0 && ! still_changing {
+         if  unknown_cell_count>0 && loop_change_count==0 {
             println!("After {} iterations, still have {} empty cells and elimination inference found nothing. Thats all I can do", loop_count, unknown_cell_count);
             break;
          }
