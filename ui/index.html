@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Document</title>
+  <style>
+        .sudoku-grid {
+            display: grid;
+            grid-template-columns: repeat(9, 40px);
+            grid-template-rows: repeat(9, 40px);
+            gap: 1px;
+            width: 405px;
+            height: 405px;
+        }
+        .scell {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 20px;
+        }
+        input {
+            width: 100%;
+            height: 100%;
+            font-size: inherit;
+            text-align: center;
+            border: none;
+            outline: none;
+        }
+        /* Add borders for the 3x3 cell blocks */
+        .sudoku-grid > div:nth-child(9n+3),
+        .sudoku-grid > div:nth-child(9n+6) {
+            border-right: 3px solid black;
+        }
+        .sudoku-grid > div:nth-child(n+19):nth-child(-n+27), 
+        .sudoku-grid > div:nth-child(n+46):nth-child(-n+54) {
+            border-bottom: 3px solid black;
+        }
+        
+        </style>
+</head>
+
+<body>
+  <h3 id="header1">The Rust Sudoku Solver</h1>
+    <script> 
+      "use strict";
+      const { invoke } = window.__TAURI__.tauri
+      // You will see "Welcome from Tauri" replaced
+      // by "Hello, World!"!
+      invoke('greet', {
+        name: 'World'
+      }) // `invoke` returns a Promise
+
+        .then((response) => {
+          window.hello.innerHTML = response
+        });
+
+        invoke('the_time', {}).then((response) => {
+          window.time.innerHTML = response
+        });
+
+        function solveCommand() {
+          // Read the inputs into an array of array of digits
+          const grid = [];
+          for (let irow = 0; irow < 9; irow++) {
+            grid[irow] = [];
+            for (let icol = 0; icol < 9; icol++) {
+              //alert(""+(irow+1)+(icol+1));
+              let digit = document.getElementById(""+(irow+1)+(icol+1)).value;
+              if (digit<'1' || digit>'9') {
+                digit = 0;
+              } else {
+                digit = parseInt(digit);
+              }
+              grid[irow][icol] = digit;
+            }
+          }
+          invoke('solve_it',{grid})
+            .then((gridOut) => {
+              loadInputs(gridOut);
+            });
+      }
+      ////////////////////////////////////////////////////
+      // Have rust send me a nice puzzle to solve
+      function loadCommand() {
+        invoke('load_ui')
+          .then((grid) => {
+            loadInputs(grid);
+        })
+      };
+      ////////////////////////////////////////////////////
+      // Take a grid and load digits into the input form.
+      function loadInputs(grid) {
+        for (let irow = 0; irow < grid.length; irow++) {
+          for (let icol = 0; icol < grid[irow].length; icol++) {
+            let digit = grid[irow][icol].toString();
+            if (digit < '1' || digit > '9') {
+              digit = ' ';
+            }
+            const index = (irow + 1).toString() + (icol + 1).toString();
+            document.getElementById(index).value = digit;
+          }
+        }
+      };
+
+    </script>
+    <div id="hello">hello goes here</div>
+    <div id="time">time goes here</div>
+<hr/>
+    <div class="sudoku-grid">
+
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="11"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="12"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="13"></div>
+
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="14"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="15"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="16"></div>
+
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="17"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="18"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="19"></div>
+
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="21"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="22"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="23"></div>
+
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="24"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="25"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="26"></div>
+
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="27"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="28"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="29"></div>
+
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="31"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="32"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="33"></div>
+
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="34"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="35"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="36"></div>
+
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="37"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="38"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="39"></div>
+
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="41"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="42"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="43"></div>
+
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="44"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="45"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="46"></div>
+
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="47"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="48"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="49"></div>
+
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="51"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="52"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="53"></div>
+
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="54"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="55"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="56"></div>
+
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="57"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="58"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="59"></div>
+
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="61"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="62"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="63"></div>
+
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="64"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="65"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="66"></div>
+
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="67"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="68"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="69"></div>
+
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="71"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="72"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="73"></div>
+
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="74"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="75"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="76"></div>
+
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="77"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="78"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="79"></div>
+
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="81"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="82"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="83"></div>
+
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="84"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="85"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="86"></div>
+
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="87"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="88"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="89"></div>
+
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="91"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="92"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="93"></div>
+
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="94"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="95"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="96"></div>
+
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="97"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="98"></div>
+      <div class="scell"><input type="text" maxlength="1"  value=" " id="99"></div>
+
+  </div>
+  <input type="button" value="Solve" onclick="solveCommand()"/>
+  <input type="button" value="Load" onclick="loadCommand()"/>
+</body>
+</html>

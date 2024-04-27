@@ -1,17 +1,47 @@
+// Prevents additional console window on Windows in release, DO NOT REMOVE!!
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 use  std::collections::HashSet;
 
 pub const UNKNOWN:u8 = 0;
 
 mod read;
 
-// 9x9 sudoko puzzle.  Solve one missing row.  No error detection.
-//
-// TODO: 
-// - naw: use ndarray crate.  
-// - done Added a row+block based missing<bool>[][].  
-// - answer is intersection of block, row and column missing.  Really that easy?
-// - Nope, that is just one way of inference.  Must also do elimnation, leaving the only remaining possible digit.
-// - lastly, some puzzles require guessing and back-tracking.
+use gethostname::gethostname;
+use time::OffsetDateTime;
+
+fn main() {
+  tauri::Builder::default()
+  .invoke_handler(tauri::generate_handler![greet,the_time,solve_it,load_ui])
+  .run(tauri::generate_context!())
+    .expect("error while running tauri application");
+}
+
+#[tauri::command]
+fn greet(name: &str) -> String {
+  format!("Hello, {}. I am your machine: {}.", name, gethostname().into_string().expect("Unknown") )
+}
+
+#[tauri::command]
+fn the_time() -> String {
+  let now = OffsetDateTime::now_local().unwrap();
+  format!("Time is {now}")
+}
+
+#[tauri::command]
+fn solve_it(grid:Grid) -> Grid {
+    //let grid = crate::read::read().expect("Bad input data.");
+    solve(grid)
+}
+
+#[tauri::command]
+fn load_ui() -> Grid {
+    crate::read::read().expect("Bad input data.")
+}
+
+// 9x9 sudoko puzzle.  
+// - inference 1: only-one-missing is intersection of block, row and column has exactly one missing digit.
+// - inference 2: Elimnation-per-neighborhood, find missing digit that is unique in one cell for a row,col, or block.
+// - inference 3: some difficult puzzles require guessing and back-tracking.  That is to do.
 pub type Grid = Vec<Vec<u8>>;
 pub type MisSet = [bool;9];
 pub type HoodMisSet = [MisSet;9];
@@ -74,14 +104,8 @@ impl MisSetOps for MisSet {
     //fn onlyOne() -> boolean
 }
 
-fn main() {
-    // copy the puzzle into an 2d array, using 0 as the unknown digit.
-    let mut grid:Grid =     crate::read::read().expect("Bad input data.");
-   
-    // raw_grid.iter()
-    //     .map(|s|  s.bytes()
-    //         .map(|b| if b==b'?'|| b<b'1' || b>b'9' {UNKNOWN} else {b - b'0'}).collect()).collect();  
-
+fn solve(mut grid:Grid) -> Grid {
+    // grid is the puzzle in a 2d array, using 0 as the unknown digit.
     // Track the missing numbers for each hood in the game.  Hoods are rows, columns and blocks.
     // Rows are 0..8 top to bottom. Columns are 0..8 left to right. Blocks are:
     // 0|1|2
@@ -217,6 +241,7 @@ fn main() {
     println!("Used {} iterations.", loop_count);
     print_notes_grid(&grid, false, row_mis, col_mis, blk_mis);
     
+    return grid;
 }
 
 // Determine the block (3x3) index from row,column index

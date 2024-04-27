@@ -11,13 +11,14 @@
             "cargo": {
                 "args": [
                     "build",
-                    "--bin=sudokutext",
-                    "--package=sudokutext"
+                    "--no-default-features"
+                    //"--package=sudoku",
+                    //"--manifest-path=./Cargo.toml"
                 ],
-                "filter": {
-                    "name": "sudokutext",
-                    "kind": "bin"
-                }
+                //"filter": {
+                //    "name": "sudokutext",
+                //    "kind": "bin"
+                //}
             },
             "args": [],
             "cwd": "${workspaceFolder}"
@@ -30,16 +31,27 @@
                 "args": [
                     "test",
                     "--no-run",
-                    "--bin=sudokutext",
-                    "--package=sudokutext"
+                    "--bin=sudoku",
+                    "--package=sudoku"
                 ],
                 "filter": {
-                    "name": "sudokutext",
+                    "name": "sudoku",
                     "kind": "bin"
                 }
             },
             "args": [],
             "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Tauri Production Debug",
+            "cargo": {
+              "args": ["build", "--release", "--manifest-path=./Cargo.toml"]
+            },
+            // task for the `beforeBuildCommand` if used, must be configured in `.vscode/tasks.json`
+            "preLaunchTask": "ui:build"
         }
+
     ]
 }
