@@ -34,8 +34,8 @@ fn solve_it(grid:Grid) -> Grid {
 }
 
 #[tauri::command]
-fn load_ui() -> Grid {
-    crate::read::read().expect("Bad input data.")
+fn load_ui(file:String) -> Grid {
+    crate::read::read(file).expect("Bad input data.")
 }
 
 // 9x9 sudoko puzzle.  

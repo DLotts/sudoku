@@ -2,17 +2,17 @@ use std::error::Error;
 use crate::UNKNOWN;
 use crate::Grid;
 
-static FILE_PATH: &str = "input.csv";
-pub fn read() -> Result<Vec<Vec<u8>>, Box<dyn Error>> {
+//static FILE_PATH: &str = "input.csv";
+pub fn read(file_path:String) -> Result<Vec<Vec<u8>>, Box<dyn Error>> {
     let mut grid:Grid = Grid::new();
-    println!("Reading file: {}\r", FILE_PATH);
+    println!("Reading file: {}\r", file_path);
     println!("in folder: {}", std::env::current_dir().unwrap().display());
     let yoread = csv::ReaderBuilder::new()
         .has_headers(false)
         .comment(Some(b'#'))
         //.delimiter(b' ')
         .trim(csv::Trim::All)
-        .from_path(FILE_PATH);
+        .from_path(file_path);
     for (row, result) in yoread?.records().enumerate() {
         let record = result?;
         let digits_nine = 

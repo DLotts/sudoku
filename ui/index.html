@@ -44,7 +44,8 @@
 <body>
   <h3 id="header1">The Rust Sudoku Solver</h1>
     <script> 
-      "use strict";
+      //import { open } from '@tauri-apps/api/dialog';
+      const { open } = window.__TAURI__.dialog;
       const { invoke } = window.__TAURI__.tauri
       // You will see "Welcome from Tauri" replaced
       // by "Hello, World!"!
@@ -83,8 +84,15 @@
       }
       ////////////////////////////////////////////////////
       // Have rust send me a nice puzzle to solve
-      function loadCommand() {
-        invoke('load_ui')
+      async function loadCommand() {
+
+        // Open a dialog
+        const file = await open({
+          multiple: false,
+          directory: false,
+        });
+
+        invoke('load_ui', {file})
           .then((grid) => {
             loadInputs(grid);
         })
