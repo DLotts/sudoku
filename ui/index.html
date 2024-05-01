@@ -44,43 +44,62 @@
 <body>
   <h3 id="header1">The Rust Sudoku Solver</h1>
     <script> 
+      "use strict";
       //import { open } from '@tauri-apps/api/dialog';
       const { open } = window.__TAURI__.dialog;
-      const { invoke } = window.__TAURI__.tauri
+      const { invoke } = window.__TAURI__.tauri;
+      const { appWindow } = window.__TAURI__.window;
+      const { listen } = window.__TAURI__.event
+      const eachTime=1000;
+      let nextTime=0;
+
+      const unlisten = listen('solve_digit', (event) => {
+          let row = event.payload.row;
+          let col = event.payload.col;
+          let digit = event.payload.digit;
+          const index = (row + 1).toString() + (col + 1).toString();
+          //alert("row="+row+" col="+col+" digit="+digit+" index="+index+" value="+document.getElementById(index).value);
+          const inp = document.getElementById(index);
+          nextTime+=eachTime;
+          setTimeout( () => {
+            //alert("timeout! row="+row+" col="+col+" digit="+digit);
+            inp.value = digit;
+        }, nextTime);
+      });
       // You will see "Welcome from Tauri" replaced
       // by "Hello, World!"!
       invoke('greet', {
         name: 'World'
       }) // `invoke` returns a Promise
-
         .then((response) => {
           window.hello.innerHTML = response
         });
 
-        invoke('the_time', {}).then((response) => {
-          window.time.innerHTML = response
-        });
+      invoke('the_time', {}).then((response) => {
+        window.time.innerHTML = response
+      });
 
-        function solveCommand() {
-          // Read the inputs into an array of array of digits
-          const grid = [];
-          for (let irow = 0; irow < 9; irow++) {
-            grid[irow] = [];
-            for (let icol = 0; icol < 9; icol++) {
-              //alert(""+(irow+1)+(icol+1));
-              let digit = document.getElementById(""+(irow+1)+(icol+1)).value;
-              if (digit<'1' || digit>'9') {
-                digit = 0;
-              } else {
-                digit = parseInt(digit);
-              }
-              grid[irow][icol] = digit;
+      function solveCommand() {
+        // Read the inputs into an array of array of digits
+        const grid = [];
+        for (let irow = 0; irow < 9; irow++) {
+          grid[irow] = [];
+          for (let icol = 0; icol < 9; icol++) {
+            //alert(""+(irow+1)+(icol+1));
+            let digit = document.getElementById(""+(irow+1)+(icol+1)).value;
+            if (digit<'1' || digit>'9') {
+              digit = 0;
+            } else {
+              digit = parseInt(digit);
             }
+            grid[irow][icol] = digit;
           }
-          invoke('solve_it',{grid})
-            .then((gridOut) => {
-              loadInputs(gridOut);
-            });
+        }
+        nextTime=0;  // time to wait to show next digit
+        invoke('solve_it',{grid,window: appWindow})
+          .then((gridOut) => {
+            //loadInputs(gridOut);
+          });
       }
       ////////////////////////////////////////////////////
       // Have rust send me a nice puzzle to solve

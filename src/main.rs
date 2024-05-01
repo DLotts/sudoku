@@ -1,13 +1,11 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-use  std::collections::HashSet;
+use tauri::Window;
+use std::collections::HashSet;
 
 pub const UNKNOWN:u8 = 0;
 
 mod read;
-
-use gethostname::gethostname;
-use time::OffsetDateTime;
 
 fn main() {
   tauri::Builder::default()
@@ -17,20 +15,20 @@ fn main() {
 }
 
 #[tauri::command]
-fn greet(name: &str) -> String {
-  format!("Hello, {}. I am your machine: {}.", name, gethostname().into_string().expect("Unknown") )
+fn greet(_name: &str) -> String {
+  format!("Feel free to enter a puzzle, or load one from a file.  Click solve when ready.")
 }
 
 #[tauri::command]
 fn the_time() -> String {
-  let now = OffsetDateTime::now_local().unwrap();
-  format!("Time is {now}")
+    // Reserved for future use
+    format!("")
 }
 
 #[tauri::command]
-fn solve_it(grid:Grid) -> Grid {
+fn solve_it(grid:Grid, window: Window) -> Grid {
     //let grid = crate::read::read().expect("Bad input data.");
-    solve(grid)
+    solve(grid, window)
 }
 
 #[tauri::command]
@@ -80,7 +78,7 @@ impl MisSetOps for MisSet {
         take.iter().enumerate().filter(|(_,&missing)| missing).for_each(|(i,_)|self[i] = false);
     }
     fn len(&self) -> usize {
-        self.iter().enumerate().filter(|(_,&missing)| missing).count()
+        self.iter().filter(|&&missing| missing).count()
     }
 
     // set intersection is boolean AND on neiborhoods.  
@@ -104,7 +102,17 @@ impl MisSetOps for MisSet {
     //fn onlyOne() -> boolean
 }
 
-fn solve(mut grid:Grid) -> Grid {
+// datum to pass to the UI for display
+#[derive(Clone, serde::Serialize)]
+struct CellUpdate {
+    row: u8,
+    col: u8,
+    digit: u8,
+}
+
+/////////////////////////
+/// solve the Rubiks cube -- NO! the Sudoku!
+fn solve(mut grid:Grid, window: Window) -> Grid {
     // grid is the puzzle in a 2d array, using 0 as the unknown digit.
     // Track the missing numbers for each hood in the game.  Hoods are rows, columns and blocks.
     // Rows are 0..8 top to bottom. Columns are 0..8 left to right. Blocks are:
@@ -151,19 +159,20 @@ fn solve(mut grid:Grid) -> Grid {
                     unknown_cell_count += 1;
                     //let missing = row_mis[i_row].inters(col_mis[i_col]).inters(blk_mis[block_from_rc(i_row,i_col)]).into_set();
                     let missing_mis_set = row_mis[i_row].inters3(col_mis[i_col],blk_mis[block_from_rc(i_row,i_col)]);
-                    let missing = missing_mis_set.into_set();
-                    if missing.len() == 0  {
-                        println!("Discovered a cell with no possible solutions after {} iterations.", loop_count);
+                    if missing_mis_set.len() == 0  {
+                        println!("Discovered a cell with no possible solutions after {} iterations. row={i_row} col={i_col} {:?}", loop_count,missing_mis_set);
+                        println!("row_mis {:?} col_mis {:?} blk_mis {:?}", row_mis[i_row],col_mis[i_col],blk_mis[block_from_rc(i_row,i_col)]);
                     }
-                    if missing.len()==1 {
+                    if missing_mis_set.len()==1 {
                         // Only one possible solution, put into the grid and update the missing hoods arrays.
-                        let only_digit = *missing.iter().next().unwrap();
+                        let only_digit = missing_mis_set.iter().position(|&b|b).unwrap() as u8 +1;
                         next_grid[i_row][i_col] = only_digit;
                         col_mis[i_col].found(only_digit);
                         row_mis[i_row].found(only_digit);
                         blk_mis[block_from_rc(i_row,i_col)].found(only_digit);
                         grid_mis[i_row][i_col]=MisSet::new_all_found();
                         loop_change_count += 1 ;
+                        window.emit("solve_digit", CellUpdate { row:i_row as u8, col:i_col as u8, digit:only_digit }).unwrap();
                     } else {
                         grid_mis[i_row][i_col]=missing_mis_set;
                     }
@@ -181,22 +190,22 @@ fn solve(mut grid:Grid) -> Grid {
         // Second inference type, elimination per neighborhood
         if unknown_cell_count > 0 && loop_change_count==0 {
             unknown_cell_count = 0;
-            for (i_row,row) in grid_mis.iter().enumerate() {
-                for (i_col,existing_mis_set) in row.into_iter().enumerate() {
+            for i_row in 0..=8 {
+                for i_col in 0..=8 {
                     if grid[i_row][i_col]==0 {
                         unknown_cell_count += 1;
-                        let mut mis_set = existing_mis_set.clone();
+                        let mut mis_set = grid_mis[i_row][i_col].clone();
                         // take all the same missing digits along the ROW
-                        for (take_col, &take_mis_set) in  row.iter().enumerate() {
-                            if take_col != i_col && grid[i_row][take_col]==0  { // skip yourself
-                                mis_set.remove(take_mis_set);
+                        for take_col in 0..=8 {
+                            if take_col != i_col && grid[i_row][take_col]==0  { // skip yourself  and filled digits
+                                mis_set.remove(grid_mis[i_row][take_col]);
                             }
                         }
                         if mis_set.len() !=1 { // do col then blk
                             // take all the same missing digits along the COLUMN
-                            mis_set = existing_mis_set.clone();
+                            mis_set = grid_mis[i_row][i_col].clone();
                             for take_row  in  0..=8 {
-                                if take_row != i_row && grid[take_row][i_col]==0{ // skip yourself
+                                if take_row != i_row && grid[take_row][i_col]==0{ // skip yourself  and filled digits
                                     mis_set.remove(grid_mis[take_row][i_col]);
                                 }
                             }
@@ -206,9 +215,10 @@ fn solve(mut grid:Grid) -> Grid {
                             // take all the same missing digits in the BLOCK
                             let i_blk = block_from_rc(i_row, i_col);
                             let rc_from_block = rc_from_block(i_blk);
-                            mis_set = existing_mis_set.clone();
+                            mis_set = grid_mis[i_row][i_col].clone();
                             for (take_row,take_col)  in  rc_from_block {
-                                if !(take_row as usize == i_row && take_col as usize == i_col) { // skip yourself
+                                if !(take_row as usize == i_row && take_col as usize == i_col) 
+                                    && grid[take_row as usize][take_col as usize]==0 { // skip yourself and filled digits
                                     mis_set.remove(grid_mis[take_row as usize][take_col as usize]);
                                 }
                             }
@@ -218,11 +228,21 @@ fn solve(mut grid:Grid) -> Grid {
                         if mis_set.len()==1 {
                             // Only one possible solution, put into the grid and update the missing hoods arrays.
                             let only_digit = (mis_set.iter().position(|&b| b).unwrap() + 1) as u8;
+                            let i_block = block_from_rc(i_row,i_col);
                             grid[i_row][i_col] = only_digit;
                             col_mis[i_col].found(only_digit);
                             row_mis[i_row].found(only_digit);
-                            blk_mis[block_from_rc(i_row,i_col)].found(only_digit);
+                            blk_mis[i_block].found(only_digit);
+                            grid_mis[i_row][i_col].found(only_digit);
+                            for i in 0..=8 {
+                                grid_mis[i][i_col].found(only_digit);
+                                grid_mis[i_row][i].found(only_digit);
+                            }
+                            for (r,c) in rc_from_block(i_block) {
+                                grid_mis[r as usize][c as usize].found(only_digit);
+                            }
                             loop_change_count += 1;
+                            window.emit("solve_digit", CellUpdate { row:i_row as u8, col:i_col as u8, digit:only_digit }).unwrap();
                         }
                     }
                 }
