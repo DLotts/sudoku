@@ -37,7 +37,16 @@
         .sudoku-grid > div:nth-child(n+46):nth-child(-n+54) {
             border-bottom: 3px solid black;
         }
-        
+
+
+        .flash  {
+          animation: flash 1.1s;
+        }
+
+        @keyframes flash {
+          50% {background-color: orange;}
+          100% {background-color: transparent;}
+        }
         </style>
 </head>
 
@@ -59,11 +68,15 @@
           let digit = event.payload.digit;
           const index = (row + 1).toString() + (col + 1).toString();
           //alert("row="+row+" col="+col+" digit="+digit+" index="+index+" value="+document.getElementById(index).value);
-          const inp = document.getElementById(index);
+          const cell = document.getElementById(index);
           nextTime+=eachTime;
           setTimeout( () => {
             //alert("timeout! row="+row+" col="+col+" digit="+digit);
-            inp.value = digit;
+            cell.value = digit;
+            cell.classList.add('flash');
+            cell.addEventListener('animationend', () => {
+              this.classList.remove('flash');
+            });
         }, nextTime);
       });
       // You will see "Welcome from Tauri" replaced
@@ -98,6 +111,7 @@
         nextTime=0;  // time to wait to show next digit
         invoke('solve_it',{grid,window: appWindow})
           .then((gridOut) => {
+            // so now the rust code emits events for each cell to fill.
             //loadInputs(gridOut);
           });
       }
