@@ -1,6 +1,6 @@
 [package]
 name = "sudoku"
-version = "0.1.0"
+version = "1.0.0"
 description = "Sudoku solver"
 authors = ["David Lotts"]
 license = "GNU AFFERO GENERAL PUBLIC LICENSE"
