@@ -12,9 +12,9 @@ Todo:
 
 - I'd like to add backtracking so it can do really hard puzzles.
 
-- I want to add a GUI using Slint or Tauri to enter values.  Maybe single step the solution.
+- Create puzzles with one solution.  Interactively or automatically.  It's harder than I thought.
 
-Sample output:
+Sample output if run from a terminal:
 
 
 ```
@@ -58,6 +58,10 @@ Used 3 iterations.
   6  7  5| 8  3  2| 9  4  1
   8  1  2| 9  4  5| 7  6  3
 ```
+
+Screenshot of the Tauri interaction:
+
+![Image demonstrating the app](screenShot.png?raw=true "Screen shot")
 
 Send me your updates/pull request! 
 
