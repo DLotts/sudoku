@@ -1,0 +1,12 @@
+# Sudoku puzzle
+# NYT solved in https://www.youtube.com/watch?v=ogGEqetkLC8
+# She used a inference called locked pairs.  Not sure this app does this.
+- - 5  - - -  - - -  
+8 7 -  - - 2  - - 5  
+- 3 -  7 - 4  - - -
+- - -  8 - -  - 6 -
+5 8 -  - 6 -  - - 1
+- - 9  - 2 -  - - -
+- - 1  - 9 -  5 - -
+- - -  - - -  9 - 6
+- - 4  - - -  - 1 7

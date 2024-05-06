@@ -1,7 +1,7 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 use tauri::Window;
-use std::collections::HashSet;
+//use std::collections::HashSet;
 
 pub const UNKNOWN:u8 = 0;
 
@@ -62,7 +62,7 @@ pub trait MisSetOps {
      fn inters3(self, s2: Self, s3: Self) -> Self ;
      fn remove(&mut self, take:MisSet);
      fn len(&self) -> usize;
-     fn into_set(&self) -> HashSet<u8>;
+     fn to_string(&self) -> String;
  }
 impl MisSetOps for MisSet {
     fn new() -> MisSet{ [true;9] }
@@ -87,19 +87,15 @@ impl MisSetOps for MisSet {
         self.iter().zip(rhs).map(|(&a,b)| a &&b).collect::<Vec<bool>>().try_into().unwrap_or([false;9])
         //[true, false, false, false, false, false, false, false, false]
     }
-    // TODO try disjunct set using xor3 = (a ^ b ^ c) && !(a && b && c)
-        // so if intersection yields one possibility, or xor3 gives one possibility!
-        // hashset has method symmetric_difference
+    
+    // intersection on three sets
     fn inters3(self, s2: Self, s3: Self) -> Self {
         self.iter().zip(s2).zip(s3).map(|((&a,b),c)| a && b && c).collect::<Vec<bool>>().try_into().unwrap_or([false;9])
         //[true, false, false, false, false, false, false, false, false]
     }
-    fn into_set(&self) -> HashSet<u8> {
-        let mut out = HashSet::<u8>::new();
-        self.iter().enumerate().for_each(|(i,&b)| if b { out.insert(i as u8 + 1); });
-        out
+    fn to_string(&self) -> String {
+        "{".to_owned()+&self.iter().enumerate().filter(|(_,&b)| b ).map(|(i,_)|{ (i as u8 + 1).to_string() }).collect::<Vec<String>>().join(",") + "}"
     }
-    //fn onlyOne() -> boolean
 }
 
 // datum to pass to the UI for display
@@ -160,8 +156,8 @@ fn solve(mut grid:Grid, window: Window) -> Grid {
                     //let missing = row_mis[i_row].inters(col_mis[i_col]).inters(blk_mis[block_from_rc(i_row,i_col)]).into_set();
                     let missing_mis_set = row_mis[i_row].inters3(col_mis[i_col],blk_mis[block_from_rc(i_row,i_col)]);
                     if missing_mis_set.len() == 0  {
-                        println!("Discovered a cell with no possible solutions after {} iterations. row={i_row} col={i_col} {:?}", loop_count,missing_mis_set);
-                        println!("row_mis {:?} col_mis {:?} blk_mis {:?}", row_mis[i_row],col_mis[i_col],blk_mis[block_from_rc(i_row,i_col)]);
+                        println!("Discovered a cell with no possible solutions after {} iterations. row={i_row} col={i_col} {}", loop_count,missing_mis_set.to_string());
+                        println!("row_mis {} col_mis {} blk_mis {}", row_mis[i_row].to_string(),col_mis[i_col].to_string(),blk_mis[block_from_rc(i_row,i_col)].to_string());
                     }
                     if missing_mis_set.len()==1 {
                         // Only one possible solution, put into the grid and update the missing hoods arrays.
@@ -296,8 +292,8 @@ fn print_notes_grid(grid: &Vec<Vec<u8>>, show_notes:bool, row_mis: HoodMisSet, c
                 print!(" {digit}");
             } else {
                 if show_notes {
-                    let missing = row_mis[i_row].inters3(col_mis[i_col], blk_mis[block_from_rc(i_row,i_col)]).into_set();
-                    print!("{:?}",missing);
+                    let missing = row_mis[i_row].inters3(col_mis[i_col], blk_mis[block_from_rc(i_row,i_col)]).to_string();
+                    print!("{}",missing);
                 } else {
                     print!("  ");
                 }
@@ -313,8 +309,6 @@ fn print_notes_grid(grid: &Vec<Vec<u8>>, show_notes:bool, row_mis: HoodMisSet, c
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashSet;
-
     use crate::MisSetOps;
     use crate::MisSet;
     use crate::HoodMisSet; 
@@ -354,7 +348,7 @@ mod tests {
     fn bool9_to_set() {
         let mut a = MisSet::new();
         a.found(1);a.found(4);a.found(5);a.found(6);a.found(7);
-        assert_eq!(a.into_set(),  HashSet::from([2,3,8,9]) , "presense in the set means not found");
+        assert_eq!(a.to_string(),  "{2,3,8,9}" , "presense in the set means not found");
     }
 
     #[test]
