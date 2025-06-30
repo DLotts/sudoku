@@ -1,8 +1,8 @@
-# Rust Sudoku text
+# Rust Sudoku full GUI
 
 Solves Easy and medium puzzles.  Anything that does not use guessing and backtracking -- as far as I know.
 
-Runs in terminal mode (run -> cmd, powershell, bash)
+Runs desktop window (MS-windows, X-window) or in terminal mode (run -> cmd, powershell, bash)
 
 Written in Rust for blazing speed, cross platform, and reliablility.
 
@@ -10,6 +10,8 @@ Edit input.csv to set the puzzle.  It is space delimited.
 
 Todo:
 
+- A few techniques: Towers, X-wing
+  
 - I'd like to add backtracking so it can do really hard puzzles.
 
 - Create puzzles with one solution.  Interactively or automatically.  It's harder than I thought.
